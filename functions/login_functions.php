@@ -20,207 +20,134 @@ function profile_picture($atts) {
 add_shortcode('profile_picture', 'profile_picture');
 
 function custom_registration_form() {
-    if (is_user_logged_in()) {
+    if (is_user_logged_in()) {  
         return '<p>Você está logado.</p>';
     }
-    //variável para guardar erro inline (caso apareça)
+
+    // Variáveis para persistência de dados e erros
     $inline_error = '';
+    $form_email = '';
+    $form_name = '';
 
     // Processar o formulário
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['custom_register'])) {
-        // Preparar sessão debug se necessário
+        
+        // Debug (mantido conforme seu original)
         if (isset($_GET['debug']) && $_GET['debug'] == '1') {
             error_reporting(E_ALL); ini_set('display_errors', 1);
-            if (session_status() !== PHP_SESSION_ACTIVE) {
-                session_start();
-            }
+            if (session_status() !== PHP_SESSION_ACTIVE) session_start();
             $_SESSION['registration_debug_errors'] = [];
-            function reg_debug($msg) {
-                $_SESSION['registration_debug_errors'][] = $msg;
-            }
+            if (!function_exists('reg_debug')) { function reg_debug($msg) { $_SESSION['registration_debug_errors'][] = $msg; } }
         } else {
             if (!function_exists('reg_debug')) { function reg_debug($msg) {} }
         }
 
-        // Resgatar dados do passo 1
+        // Resgatar dados
         $step1_data = isset($_POST['step1_data']) ? json_decode(stripslashes($_POST['step1_data']), true) : [];
         $display_name = isset($step1_data['display_name']) ? sanitize_text_field($step1_data['display_name']) : '';
         $email = isset($step1_data['email']) ? sanitize_email($step1_data['email']) : '';
-
-        // Dados do passo 2
         $password = isset($_POST['password']) ? $_POST['password'] : '';
         $password_confirm = isset($_POST['password_confirm']) ? $_POST['password_confirm'] : '';
 
-        // Validar campos
+        // Preenche variáveis para não perder o que foi digitado se der erro PHP
+        $form_email = $email;
+        $form_name = $display_name;
+
+        // 1. Validação de Senha
         if ($password !== $password_confirm) {
-            wp_redirect(add_query_arg('error', 'password_mismatch', $_SERVER['REQUEST_URI']));
-            exit;
+            $inline_error = '<div class="registration-error" style="color: #c33; margin-bottom: 1rem;">As senhas não coincidem.</div>';
         }
-        if (email_exists($email)) {
-            wp_redirect(add_query_arg('error', 'email_exists', $_SERVER['REQUEST_URI']));
-            exit;
-        }
+        // 2. Validação de Email (Se existir, mostra o erro e botões)
+        elseif (email_exists($email)) {
+            $inline_error = '
+            <div class="registration-error" style="background: #fee; color: #c33; padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border: 1px solid #fcc;">
+                <p style="margin: 0 0 1rem 0; font-weight: 600;">Este e-mail já está cadastrado.</p>
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                    <a href="' . esc_url(wp_lostpassword_url()) . '" class="btn-secondary" style="flex: 1; text-align: center; padding: 0.5rem; border-radius:4px; background:#fff; border:1px solid #ccc; text-decoration:none; color:#333;">Recuperar senha</a>
+                    <a href="' . esc_url(home_url('/login/')) . '" class="btn-primary" style="flex: 1; text-align: center; padding: 0.5rem; border-radius:4px; background:#667eea; color:#fff; text-decoration:none;">Fazer Login</a>   
+                </div>
+            </div>';
+        } 
+        else {
+            // 3. Email livre: Criar Usuário
+            $user_id = wp_create_user($email, $password, $email);
 
-        $user_id = wp_create_user($email, $password, $email); // user_login = email
-        if (is_wp_error($user_id)) {
-            reg_debug('Erro wp_create_user: ' . $user_id->get_error_message());
-            wp_redirect(add_query_arg('error', 'registration_failed', $_SERVER['REQUEST_URI']));
-            exit;
-        }
-
-        // Ajustar dados extras
-        wp_update_user(['ID'=>$user_id, 'display_name'=>$display_name, 'role'=>'hunter']);
-
-        // Processar upload da foto de perfil, se houver
-        if (
-            isset($_FILES['profile_photo'])
-            && is_array($_FILES['profile_photo'])
-            && !empty($_FILES['profile_photo']['name'])
-            && $_FILES['profile_photo']['error'] !== UPLOAD_ERR_NO_FILE
-        ) {
-            $file = $_FILES['profile_photo'];
-            reg_debug('Arquivo recebido: ' . print_r($file, true));
-
-            // Adicionando checagem de erro antes do upload
-            if ($file['error'] !== UPLOAD_ERR_OK) {
-                reg_debug('Erro no upload do arquivo: ' . $file['error']);
+            if (is_wp_error($user_id)) {
+                reg_debug('Erro wp_create_user:' . $user_id->get_error_message());
+                $inline_error = '<div class="registration-error">Erro ao criar conta: ' . $user_id->get_error_message() . '</div>';
             } else {
-                // Load WordPress file functions
-                if (!function_exists('wp_handle_upload')) {
-                    require_once(ABSPATH . 'wp-admin/includes/file.php');
-                }
-                if (!function_exists('media_handle_upload')) {
-                    require_once(ABSPATH . 'wp-admin/includes/media.php');
-                }
-                if (!function_exists('wp_generate_attachment_metadata')) {
-                    require_once(ABSPATH . 'wp-admin/includes/image.php');
-                }
+                // SUCESSO AO CRIAR USUÁRIO
+                
+                // Atualizar Nome e Role
+                wp_update_user(['ID' => $user_id, 'display_name' => $display_name, 'role' => 'hunter']);
 
-                // Verify file exists and is valid
-                if (!isset($file['tmp_name']) || !file_exists($file['tmp_name'])) {
-                    reg_debug('Arquivo temporário não encontrado ou inválido.');
-                } else {
-                    // Media upload: user must have upload_files capability; temporarily add capability if not admin
-                    $user = get_user_by('id', $user_id);
-                    if (!$user) {
-                        reg_debug('Usuário não encontrado após criação.');
-                    } else {
-                        // Temporarily set current user for media_handle_upload
-                        $old_user_id = get_current_user_id();
-                        wp_set_current_user($user_id);
-                        
-                        $old_caps = [];
-                        if (!user_can($user, 'upload_files')) {
-                            $user->add_cap('upload_files');
-                            $old_caps[] = 'upload_files';
+                // Processar Upload da Foto (Try/Catch)
+                if (
+                    isset($_FILES['profile_photo'])
+                    && is_array($_FILES['profile_photo'])
+                    && !empty($_FILES['profile_photo']['name'])
+                    && $_FILES['profile_photo']['error'] !== UPLOAD_ERR_NO_FILE
+                ) {
+                    try {
+                        // Carregar bibliotecas do WP se necessário
+                        if (!function_exists('media_handle_upload')) {
+                            require_once(ABSPATH . 'wp-admin/includes/image.php');
+                            require_once(ABSPATH . 'wp-admin/includes/file.php');
+                            require_once(ABSPATH . 'wp-admin/includes/media.php');
                         }
 
-                        // Tentar upload com tratamento de erros robusto
-                        try {
-                            // Verify the file key exists in $_FILES before calling media_handle_upload
-                            if (!isset($_FILES['profile_photo']) || empty($_FILES['profile_photo']['tmp_name'])) {
-                                reg_debug('profile_photo não está disponível em $_FILES para upload.');
-                            } else {
-                                $file_return = media_handle_upload('profile_photo', 0, [], ['test_form' => false]);
-                                
-                                if (is_wp_error($file_return)) {
-                                    reg_debug('Falha no upload da imagem: ' . $file_return->get_error_message());
-                                    // Log the error but don't fail registration
-                                } else {
-                                    // Salva o ID/media URL do anexo na user_meta do usuário
-                                    update_user_meta($user_id, 'profile_image_id', $file_return);
-                                    $image_url = wp_get_attachment_url($file_return);
-                                    if ($image_url) {
-                                        // Save to both meta keys for compatibility
-                                        update_user_meta($user_id, 'custom_profile_image', esc_url_raw($image_url));
-                                        update_user_meta($user_id, 'custom_avatar', esc_url_raw($image_url));
-                                        // Set timestamp for cache busting
-                                        update_user_meta($user_id, 'avatar_updated', time());
-                                    }
-                                    reg_debug('Upload da imagem bem-sucedido. ID: ' . $file_return);
-                                }
-                            }
-                        } catch (\Throwable $e) {
-                            reg_debug('Exceção ao fazer upload do arquivo: ' . $e->getMessage());
-                            reg_debug('Stack trace: ' . $e->getTraceAsString());
-                            // Don't fail registration if image upload fails
-                        } catch (\Exception $e) {
-                            reg_debug('Exceção (Exception) ao fazer upload do arquivo: ' . $e->getMessage());
-                            // Don't fail registration if image upload fails
+                        // Verificar erro básico de upload
+                        if ($_FILES['profile_photo']['error'] !== UPLOAD_ERR_OK) {
+                            throw new Exception('Erro no upload do arquivo: ' . $_FILES['profile_photo']['error']);
                         }
 
-                        // Remove temporary capability
-                        if (!empty($old_caps)) {
-                            foreach ($old_caps as $cap) {
-                                $user->remove_cap($cap);
-                            }
-                        }
-                        
-                        // Restore previous user (or set to 0 if no previous user)
-                        if ($old_user_id) {
-                            wp_set_current_user($old_user_id);
+                        // Tentar processar o arquivo
+                        $file_return = media_handle_upload('profile_photo', 0);
+
+                        if (is_wp_error($file_return)) {
+                            reg_debug('Falha no upload da imagem: ' . $file_return->get_error_message());
                         } else {
-                            wp_set_current_user(0);
+                            // Sucesso no upload: Salvar metadados
+                            update_user_meta($user_id, 'profile_image_id', $file_return);
+                            $image_url = wp_get_attachment_url($file_return);
+                            
+                            if ($image_url) {
+                                update_user_meta($user_id, 'custom_avatar', esc_url_raw($image_url));
+                                update_user_meta($user_id, 'custom_profile_image', esc_url_raw($image_url));
+                                update_user_meta($user_id, 'avatar_updated', time());
+                            }
+                            reg_debug('Upload da imagem bem-sucedido. ID: ' . $file_return);
                         }
+
+                    } catch (Throwable $e) {
+                        reg_debug('Erro Fatal/Exception no upload: ' . $e->getMessage());
+                    } catch (Exception $e) {
+                        reg_debug('Exception no upload: ' . $e->getMessage());
                     }
-                }
-            }
-        } else {
-            reg_debug('Nenhuma imagem de perfil enviada.');
-        }
+                } // Fim do IF profile_photo
 
-        // Auto login após cadastro
-        wp_set_auth_cookie($user_id, true);
-        wp_redirect(get_role_redirect_url($user_id));
-        exit;
-    }
+                // --- LOGIN E REDIRECT ---
+                // Isso deve ficar fora do bloco de upload, mas dentro do bloco de sucesso do usuário
+                wp_set_auth_cookie($user_id, true);
+                wp_redirect(get_role_redirect_url($user_id));
+                exit;
 
+            } // Fim do Else (Sucesso create_user)
+        } // Fim do Else (Email livre)
+    } // Fim do IF POST
+
+    // --- VIEW (HTML) ---
     ob_start();
-
-    // Exibição de erros da querystring (erros comuns)
-    if (isset($_GET['error'])) {
-        if ($_GET['error'] === 'email_exists') {
-            // Special handling for email_exists error with buttons
-            echo '<div class="registration-error" style="background: #fee; color: #c33; padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border: 1px solid #fcc;">';
-            echo '<p style="margin: 0 0 1rem 0; font-weight: 600;">Esse email já está cadastrado.</p>';
-            echo '<div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">';
-            echo '<a href="' . esc_url(wp_lostpassword_url()) . '" class="btn-secondary" style="flex: 1; min-width: 150px; text-align: center; text-decoration: none; display: inline-block; padding: 0.75rem 1rem; border-radius: 0.5rem; background: #f5f5f5; color: #666; font-weight: 500; transition: all 0.3s ease;">Recuperar senha</a>';
-            echo '<a href="' . esc_url(home_url('/login/')) . '" class="btn-primary" style="flex: 1; min-width: 150px; text-align: center; text-decoration: none; display: inline-block; padding: 0.75rem 1rem; border-radius: 0.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">Tentar logar novamente</a>';
-            echo '</div>';
-            echo '</div>';
-        } else {
-            // Other errors
-            $error_messages = [
-                'password_mismatch' => 'As senhas não coincidem. Por favor, tente novamente.',
-                'registration_failed' => 'Erro ao criar conta. Por favor, tente novamente.'
-            ];
-            $error_msg = isset($error_messages[$_GET['error']]) ? $error_messages[$_GET['error']] : 'Ocorreu um erro. Por favor, tente novamente.';
-            echo '<div class="registration-error" style="background: #fee; color: #c33; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border: 1px solid #fcc;">' . esc_html($error_msg) . '</div>';
-        }
+    
+    // Se houver erro inline (Senha ou Email Existente), exibe aqui
+    if (!empty($inline_error)) {
+        echo $inline_error;
     }
-
-    // Mostrar qualquer erro PHP com debug
-    if (isset($_GET['debug']) && $_GET['debug'] == '1') {
-        error_reporting(E_ALL);
-        ini_set('display_errors', 1);
-
-        // Verifica se há algum erro armazenado na sessão, exibe e limpa
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
-        }
-        if (!empty($_SESSION['registration_debug_errors'])) {
-            echo '<pre style="background:#fdd; border:1px solid #c00; color:#900; font-size:0.93em; padding:1em; margin-bottom:1em; border-radius:4px;">';
-            echo "Erros de Debug (PHP):\n";
-            foreach ($_SESSION['registration_debug_errors'] as $debugMsg) {
-                echo htmlspecialchars($debugMsg) . "\n";
-            }
-            echo "</pre>";
-            unset($_SESSION['registration_debug_errors']);
-        }
-    }
+    
     ?>
     <div class="multi-step-registration" id="registrationForm">
-        <!-- Step 1: Name and Photo -->
+        <div id="step1-error-container"></div>
+
         <div class="registration-step active" data-step="1">
             <div class="step-header">
                 <h2>Crie sua conta</h2>
@@ -245,14 +172,14 @@ function custom_registration_form() {
                 
                 <div class="input_label">
                     <label for="display_name" class="input_group">
-                        <input type="text" id="display_name" name="display_name" required>
+                        <input type="text" id="display_name" name="display_name" value="<?php echo esc_attr($form_name); ?>" required>
                         <span class="omrs-input-label">Nome completo</span>
                     </label>
                 </div>
                 
                 <div class="input_label">
                     <label for="email" class="input_group">
-                        <input type="email" id="email" name="email" required>
+                        <input type="email" id="email" name="email" value="<?php echo esc_attr($form_email); ?>" required>
                         <span class="omrs-input-label">Email</span>
                     </label>
                 </div>
@@ -261,7 +188,6 @@ function custom_registration_form() {
             </form>
         </div>
 
-        <!-- Step 2: Password -->
         <div class="registration-step" data-step="2">
             <div class="step-header">
                 <h2>Defina sua senha</h2>
@@ -297,17 +223,16 @@ function custom_registration_form() {
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const step1Form = document.getElementById('step1Form');
-        const step2Form = document.getElementById('step2Form');
         const nextBtn = document.getElementById('nextToStep2');
         const backBtn = document.getElementById('backToStep1');
         const photoInput = document.getElementById('profile_photo');
         const photoPreview = document.getElementById('photoPreview');
         const photoUploadLabel = document.getElementById('photoUploadLabel');
         const step1Data = document.getElementById('step1_data');
-        
-        // Make the label in step 1 trigger the file input in step 2
+        const errorContainer = document.getElementById('step1-error-container');
+
+        // Photo Upload Logic (Mantido)
         photoUploadLabel.addEventListener('click', function(e) {
-            // Only trigger if we're on step 1
             const step1 = document.querySelector('[data-step="1"]');
             if (step1 && step1.classList.contains('active')) {
                 e.preventDefault();
@@ -315,57 +240,89 @@ function custom_registration_form() {
             }
         });
         
-        // Photo preview - when file is selected, show preview
         photoInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
-                // Show preview
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     photoPreview.innerHTML = '<img src="' + e.target.result + '" alt="Preview">';
                     photoPreview.classList.add('has-image');
                 };
-                reader.onerror = function() {
-                    console.error('Error reading file for preview');
-                };
                 reader.readAsDataURL(file);
-            } else {
-                // Reset preview if no file
-                photoPreview.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" stroke="currentColor" stroke-width="2"/><path d="M20.59 22C20.59 18.13 16.74 15 12 15C7.26 15 3.41 18.13 3.41 22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="photo-placeholder-text">Adicionar foto</span>';
-                photoPreview.classList.remove('has-image');
             }
         });
-        
-        // Step 1 to Step 2
+
+        // --- LÓGICA DO BOTÃO CONTINUAR (PRÉ-VALIDAÇÃO) ---
         nextBtn.addEventListener('click', function() {
             const displayName = document.getElementById('display_name').value;
             const email = document.getElementById('email').value;
             
+            errorContainer.innerHTML = ''; // Limpa erros anteriores
+
             if (!displayName || !email) {
                 alert('Por favor, preencha todos os campos.');
                 return;
             }
-            
-            // Store step 1 data
-            const step1DataObj = {
-                display_name: displayName,
-                email: email
-            };
-            step1Data.value = JSON.stringify(step1DataObj);
-            
-            // File is already in the form input, no need to transfer
-            // Move to step 2
-            document.querySelector('[data-step="1"]').classList.remove('active');
-            document.querySelector('[data-step="2"]').classList.add('active');
+
+            // UI de carregamento
+            const originalText = nextBtn.innerText;
+            nextBtn.innerText = 'Verificando...';
+            nextBtn.disabled = true;
+
+            // AJAX Check
+            const formData = new FormData();
+            formData.append('action', 'ph_check_email');
+            formData.append('email', email);
+
+            fetch('<?php echo admin_url("admin-ajax.php"); ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                nextBtn.innerText = originalText;
+                nextBtn.disabled = false;
+
+                if (!data.success) {
+                    // EMAIL JÁ EXISTE! Mostra o HTML customizado
+                    errorContainer.innerHTML = `
+                    <div class="registration-error" style="background: #fee; color: #c33; padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border: 1px solid #fcc; animation: fadeIn 0.3s;">
+                        <p style="margin: 0 0 1rem 0; font-weight: 600;">${data.data.message}</p>
+                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                            <a href="<?php echo home_url('/recuperar-senha/'); ?>" target="_blank" class="btn-secondary" style="flex: 1; text-align: center; padding: 0.75rem; border-radius: 0.5rem; background: #fff; border: 1px solid #ddd; color: #666; font-weight: 500; text-decoration:none;">Recuperar senha</a>
+                            <a href="<?php echo esc_url(home_url('/login/')); ?>" class="btn-primary" style="flex: 1; text-align: center; padding: 0.75rem; border-radius: 0.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; text-decoration:none;">Fazer Login</a>
+                        </div>
+                    </div>`;
+                    
+                    // Rola suavemente para o erro
+                    errorContainer.scrollIntoView({behavior: "smooth"});
+                } else {
+                    // SUCESSO! Passa para o Step 2
+                    const step1DataObj = {
+                        display_name: displayName,
+                        email: email
+                    };
+                    step1Data.value = JSON.stringify(step1DataObj);
+                    
+                    document.querySelector('[data-step="1"]').classList.remove('active');
+                    document.querySelector('[data-step="2"]').classList.add('active');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                nextBtn.innerText = originalText;
+                nextBtn.disabled = false;
+                alert('Erro ao verificar conexão.');
+            });
         });
         
-        // Step 2 back to Step 1
+        // Botão Voltar
         backBtn.addEventListener('click', function() {
             document.querySelector('[data-step="2"]').classList.remove('active');
             document.querySelector('[data-step="1"]').classList.add('active');
         });
         
-        // Password confirmation validation
+        // Confirmação de Senha
         document.getElementById('password_confirm').addEventListener('input', function() {
             const password = document.getElementById('password').value;
             const confirm = this.value;
@@ -533,7 +490,6 @@ function ph_auth_modal_shortcode($atts = array()) {
                 <button type="submit" class="ph-btn-submit">Entrar no Grupo</button>
                 <div id="login-msg" style="margin-top:10px; text-align:center; font-size:0.9rem;"></div>
             </form>
-
             <form id="ph-register-form" style="display:none;">
                 <h3 style="margin-bottom: 15px; text-align: center;">Crie sua conta grátis</h3>
                 <div class="ph-form-group">
@@ -593,7 +549,6 @@ function ph_auth_modal_shortcode($atts = array()) {
                 btn.disabled = true;
                 btn.textContent = 'Verificando...';
                 msg.style.display = 'none';
-
                 const fd = new FormData(loginForm);
                 fd.append('action', 'ph_login');
                 // Usamos o nonce social_nonce que já existe no seu código, ou criamos um específico
@@ -767,3 +722,31 @@ function ph_auth_modal_shortcode($atts = array()) {
     return ob_get_clean();
 }
 add_shortcode('ph_auth_modal', 'ph_auth_modal_shortcode');
+
+function ph_check_email_availability() {
+    // Verifica se o email foi enviado
+    if (!isset($_POST['email'])) {
+        wp_send_json_error(['message' => 'Email não fornecido']);
+    }
+
+    $email = sanitize_email($_POST['email']);
+
+    // Verifica validação básica de formato de email
+    if (!is_email($email)) {
+         wp_send_json_error(['message' => 'Formato de e-mail inválido.']);
+    }
+
+    if (email_exists($email)) {
+        // Retorna ERRO se o email JÁ EXISTE (para impedir o cadastro)
+        wp_send_json_error([
+            'exists' => true,
+            'message' => 'Este e-mail já está cadastrado.'
+        ]);
+    } else {
+        // Sucesso: Email está livre para uso
+        wp_send_json_success();
+    }
+}
+// Registra os hooks para usuários logados e não logados
+add_action('wp_ajax_nopriv_ph_check_email', 'ph_check_email_availability');
+add_action('wp_ajax_ph_check_email', 'ph_check_email_availability');
