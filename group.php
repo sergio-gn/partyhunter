@@ -1,12 +1,6 @@
 <?php
 /* Template Name: Group */
 
-// Redirect if not logged in  (REMOVIDO O REDIRECIONAMENTO FORÇADO AQUI)
-//if (!is_user_logged_in()) {
-    //wp_redirect(home_url('/login/'));
-    //exit;
-//}
-
 // --- BLOCO 1: Intercepta a busca e MONTA O LINK ---
 if (isset($_POST['group-input']) && !empty($_POST['group-input'])) {
     $input_value = trim($_POST['group-input']);   
