@@ -1,0 +1,247 @@
+    .group-page-container {
+        min-height: 80vh;
+        padding: 2rem 1rem;
+    }
+
+    .group-content {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .group-header {
+        background: white;
+        border-radius: 1.5rem;
+        padding: 2.5rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .group-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: #1a1a1a;
+    }
+
+    .group-header p {
+        color: #666;
+        font-size: 1rem;
+        margin: 0.5rem 0;
+    }
+
+    .group-id {
+        background: #f5f5f5;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-family: monospace;
+        font-size: 0.9rem;
+        display: inline-block;
+        margin: 1rem 0;
+    }
+
+    .group-actions {
+        margin-top: 2rem;
+    }
+
+    .btn-group-action {
+        padding: 1rem 2rem;
+        border: none;
+        border-radius: 0.75rem;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-join {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+    }
+
+    .btn-join:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(79, 172, 254, 0.5);
+    }
+
+    .btn-leave {
+        background: #f5f5f5;
+        color: #666;
+    }
+
+    .btn-leave:hover {
+        background: #e8e8e8;
+    }
+
+    .alert {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .members-section {
+        background: white;
+        border-radius: 1.5rem;
+        padding: 2.5rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .members-section h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: #1a1a1a;
+    }
+
+    .members-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .member-card {
+        text-align: center;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 1rem;
+        transition: all 0.3s ease;
+    }
+    .member-card a {
+        text-decoration: none;
+        color: black;
+    }
+    .member-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .member-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin: 0 auto 1rem;
+        overflow: hidden;
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .member-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .member-name {
+        font-weight: 600;
+        color: #1a1a1a;
+        margin: 0;
+    }
+
+    .no-group {
+        text-align: center;
+        padding: 3rem;
+        background: white;
+        border-radius: 1.5rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .no-group h2 {
+        color: #1a1a1a;
+        margin-bottom: 1rem;
+    }
+
+    .no-group p {
+        color: #666;
+    }
+
+    .blur-content {
+        filter: blur(8px);
+        pointer-events: none;
+        user-select: none;
+        opacity: 0.6;
+        transition: all 0.3s ease;
+    }
+    /* Modal Overlay */
+    .ph-auth-overlay {
+        position: fixed;
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 100%;
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(5px);
+    }
+
+    /* Modal Box */
+    .ph-auth-modal {
+        background: white;
+        padding: 0;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        overflow: hidden;
+        animation: slideUp 0.4s ease;
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Tabs do Modal */
+    .ph-auth-tabs {
+        display: flex;
+        background: #f8f9fa;
+        border-bottom: 1px solid #eee;
+    }
+    .ph-auth-tab {
+        flex: 1;
+        padding: 15px;
+        text-align: center;
+        cursor: pointer;
+        font-weight: 600;
+        color: #666;
+        transition: 0.2s;
+    }
+    .ph-auth-tab.active {
+        background: white;
+        color: #007bff;
+        border-bottom: 2px solid #007bff;
+    }
+
+    /* Form Body */
+    .ph-auth-body {
+    padding: 25px;
+    background-color: #c478ff;
+}
+    .ph-form-group { margin-bottom: 15px; }
+    .ph-form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: #333; }
+    .ph-form-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; }
+    .ph-btn-submit { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: background 0.2s; }
+    .ph-btn-submit:hover { background: #0056b3; }
+    
+    /* Botões de Compartilhamento */
+    .share-buttons { margin-top: 10px; display: flex; gap: 10px; justify-content: center; }
+    .btn-share { padding: 8px 12px; border-radius: 20px; text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; border: none; transition: transform 0.1s;}
+    .btn-share:active { transform: scale(0.95); }
+    .btn-whatsapp { background: #25D366; color: white; }
+    .btn-copy { background: #f0f0f0; color: #333; }

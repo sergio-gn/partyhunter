@@ -36,7 +36,170 @@ get_template_part( 'parts/navigation' );
         color: var(--main_colour);
         font-size: 2rem;
     }
+    .post__date{
+        color: #fff;
+    }
+    .featured-image-wrapper{
+        height: 30vh;
+    }
+    .featured-image-wrapper img{
+        width: 100%;
+        object-fit: cover;
+        height: 100%;
+        border-radius: .5rem;
+    }
+    .votes_insta{
+        display: flex;
+        justify-content:center;
+        align-items:center;
+        gap: 1rem;
+
+        .votes, .insta{
+            padding: .5rem 1rem;
+            border-radius: .25rem;
+            width: 6rem;
+            text-align: center;
+        }
+        .votes{
+            background: linear-gradient(90deg, rgba(9,255,154,1) 35%, rgba(103,255,193,1) 100%);
+            color: #000;
+        }
+        .insta{
+            background: #A555EC;
+            color: #fff;
+        }
+        .insta a{
+            text-decoration: none;
+            color: #fff;
+        }
+}
+    .post__meta {
+        background: linear-gradient(180deg, rgba(9,255,154,1) 35%, rgba(103,255,193,1) 100%);
+        padding: 1rem;
+        border-radius: 5px;
+        margin-top: 2rem;
+        position: relative;
+    }
+    .post__meta_info{
+        background: #424242;
+        padding: 1rem;
+        border-radius: 5px;
+        color: #fff;
+        margin-top: 2rem;
+        position: relative;
+    }
+    .post__meta p {
+        margin: 0.5rem 0;
+    }
+    .post__badge{
+        position: absolute;
+        background: #A555EC;
+        color: #fff;
+        top: -.5rem;
+        left: 0;
+        right: 0;
+        width: fit-content;
+        margin: auto;
+        border-radius: .25rem;
+        padding: .25rem 1rem;
+    }
+    .comments-area {
+        margin-top: 2rem;
+        padding: 1rem;
+        border-radius: 5px;
+    }
+    .comments-title {
+        font-size: 1.5rem;
+        color: #ffffff;
+    }
+    .comment-list {
+        list-style: none;
+        padding: 0;
+    }
+    .comment{
+        margin-bottom: 1rem;
+        border-radius: 5px;
+    }
+    .comment-reply-link{
+        color: #a555ec;
+        text-decoration: none;
+        padding: .25rem .5rem;
+        border-radius: 1rem;
+    }
+    .reply{
+        color: #a555ec;
+    }
+    .comment-meta{
+        display: flex;
+        gap: 1rem;
+    }
+    .comment_author a{
+        text-decoration: none;
+        color: #fff
+    }
+    .comment-content{
+        color: #fff
+    }
+    .logged-in-as{
+        color: #d0a7f5bd;
+    }
+    .comment-textarea-submit {
+        display: flex;
+    }
+    .comment-textarea-submit textarea {
+        width: 100%;
+        resize: none;
+        background: #4A4A4A;
+        color: white;
+        font-size: 16px;
+        padding: 10px;
+        font-family: system-ui;
+    }
+    .comment-textarea-submit textarea::placeholder {
+        color: white; 
+        font-size: 16px;
+        opacity: 1;
+    }
+    .submit{
+        height: 100%;
+        width: 100%;
+        padding: 2rem;
+        background: #A555EC;
+        border: none;
+        color: #fff;
+        cursor:pointer;
+    }
+    .avatar{
+        border-radius: 10rem;
+    }
+    #reply-title {
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 400;
+    }
+    #reply-title a{
+        color:#A555EC;
+    }
+    .comment-list {
+        list-style-type: none;
+        padding-left: 0;
+    }
+    .comment{
+        list-style: none;
+    }
+    .sidebar-title{
+        color: var(--white_tone);
+        font-weight: bold;
+    }
+    .recent_parties{
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+    }
     @media(orientation: portrait){
+        .featured-image-wrapper{
+            height: 15vh;
+        }
         .container_blog_inner{
             flex-direction: column;
         }
@@ -82,19 +245,50 @@ get_template_part( 'parts/navigation' );
                         <header class="post__header" role="heading">
                             <h1 class="post__title"><?php the_title(); ?></h1>
                         </header>
-                        <p class="post__date pb-1">
-                            Date: <?php echo esc_html(get_the_date('F j, Y'));?>
-                        </p>
-                        <hr>
+						
+                        <div class="votes_insta">
+                            <div class="votes">
+                                <strong>Vote:</strong> <?php echo esc_html(get_post_meta(get_the_ID(), 'vote', true)); ?>
+                            </div>
+                            <div class="insta">
+                                <a href="https://www.instagram.com/<?php echo esc_html(get_post_meta(get_the_ID(), 'insta', true)); ?>">
+                                    Ver no Insta
+                                </a>
+                            </div>
+                        </div>
+                        <div class="post__meta">
+                            <div class="post__badge">
+                                Informações
+                            </div>
+                            <p><strong>Data:</strong> <?php echo esc_html(get_post_meta(get_the_ID(), 'date', true)); ?></p>
+                            <p><strong>Local:</strong> <?php echo esc_html(get_post_meta(get_the_ID(), 'location', true)); ?></p>
+                            <p><strong>Preço:</strong> <?php echo esc_html(get_post_meta(get_the_ID(), 'price', true)); ?></p>
+                        </div>
+                        <div class="post__meta_info">
+                            <div class="post__badge">
+                                Lotes
+                            </div>
+                            <p><strong>Lote Promo:</strong> <?php echo esc_html(get_post_meta(get_the_ID(), 'lote_1', true)); ?></p>
+                            <p><strong>Primeiro lote:</strong> <?php echo esc_html(get_post_meta(get_the_ID(), 'lote_2', true)); ?></p>
+                            <p><strong>Segundo lote:</strong> <?php echo esc_html(get_post_meta(get_the_ID(), 'lote_3', true)); ?></p>
+                            <p><strong>Terceiro lote:</strong> <?php echo esc_html(get_post_meta(get_the_ID(), 'lote_4', true)); ?></p>
+                        </div>
                         <div class="post__content">
                             <?php the_content(); ?>
+                        </div>
+                        <div class="post__comments">
+                            <?php 
+                            if (comments_open() || get_comments_number()) {
+                                comments_template();
+                            }
+                            ?>
                         </div>
                     </article>
                 <?php endwhile; ?>
             </div>
             <div class="sidebar">
                 <div>
-                    <p class="sidebar-title">Recent Blogs</p>
+                    <p class="sidebar-title">Festas Recentes</p>
                     <?php
                             // set up the arguments for the query to select the main post
                             $args = array(
@@ -114,7 +308,7 @@ get_template_part( 'parts/navigation' );
                         ?>
                                 <div style="border-top: 1px solid #414141;">
                                     <article <?php post_class(); ?>>
-                                        <div class="d-flex align-items-center">
+                                        <div class="recent_parties">
                                             <?php if(has_post_thumbnail()): ?>
                                                 <div class="img-wrapper_sixpack_sidebar">
                                                     <div style="border-radius:.5rem" class="img-wrapper_thumbnail">

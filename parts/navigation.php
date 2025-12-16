@@ -1,4 +1,4 @@
-<header style="<?php if ( is_user_logged_in() ) { echo 'margin-top: 32px;'; } ?>">
+<header style="<?php if ( is_user_logged_in()) { echo 'margin-top: 32px;'; } ?>">
 	<div class="navbar-bar">
 		<div class="container mobile_nav">
 	        <div class="d-flex align-center justify-between gap-1">
@@ -17,20 +17,38 @@
 	            </div>
                 <div class="navigation">
                     <div class="container">
-                        <?php
-                            wp_nav_menu(array(
-                                'theme_location' => 'primary_menu',
-                                'menu_class' => 'nav-class',
-                            ));
-                        ?>
+                        <div class="nav-class">
+                            <?php if (is_user_logged_in()): ?>
+                                <!-- Simple logged-in user menu -->
+                                <ul class="nav-class">
+                                    <li>
+                                        <div class="cta_buttons_nav">
+                                            <?php echo do_shortcode('[profile_picture]') ?>
+                                            <?php if (function_exists('ph_get_friend_requests_widget')) echo ph_get_friend_requests_widget(); ?>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <?php echo display_logout_button(); ?>
+                                    </li>
+                                </ul>
+                            <?php else: ?>
+                                <!-- Full menu for non-logged-in users -->
+                                <?php
+                                    wp_nav_menu(array(
+                                        'theme_location' => 'primary_menu',
+                                        'menu_class' => 'nav-class',
+                                    ));
+                                ?>
+                                <div class="cta_buttons_nav">
+                                    <?php echo do_shortcode('[profile_picture]') ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
                 <button class="button_mb desktop_none" onclick="toggleActiveClass()">
                     ☰
                 </button>
-	            <div class="cta_buttons_nav">
-                    <?php echo do_shortcode('[custom_buttons]') ?>
-	            </div>
 	        </div>
         </div>
 	</div>

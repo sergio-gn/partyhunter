@@ -3,7 +3,11 @@
  * Blogs 
  **/
 get_header();
-get_template_part( 'parts/navigation' );
+
+if ( ! wp_is_mobile() ) {
+    get_template_part( 'parts/navigation' );
+}
+
 ?>
 <style>
     .blog_title{
@@ -64,7 +68,14 @@ get_template_part( 'parts/navigation' );
          $args = array(
         	 'post_type' => 'post',
         	 'post_status' => 'publish',
-        	 'posts_per_page' => 20
+             'posts_per_page' => 20,
+             'meta_query' => array(
+                 array(
+                     'key' => 'post_visibility',
+                     'value' => array('group','followers'),
+                     'compare' => 'NOT IN'
+                 )
+             )
          );
         
          // create a new WP_Query instance with the arguments
@@ -74,7 +85,7 @@ get_template_part( 'parts/navigation' );
          if ( $query->have_posts() ) : 
         	 while ( $query->have_posts() ) : $query->the_post(); 
          ?>
-        		 <article class="d-flex">
+			 <article class="d-flex" data-post-id="<?php the_ID(); ?>">
         			<div>
         				<?php
         					if (has_post_thumbnail()): ?>
@@ -109,6 +120,9 @@ get_template_part( 'parts/navigation' );
             					?>
             				</p>
         				</header>
+                            <?php if (current_user_can('administrator')): ?>
+                                <button class="ph-admin-delete-post-btn" data-post-id="<?php the_ID(); ?>" style="background:#f8d7da;color:#721c24;border:none;padding:0.5rem 0.75rem;border-radius:0.5rem;cursor:pointer;margin-top:0.5rem;">Deletar</button>
+                            <?php endif; ?>
         			</div>
         		 </article>
          <?php
@@ -122,3 +136,28 @@ get_template_part( 'parts/navigation' );
  wp_reset_postdata();
 get_footer();
 ?>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('.ph-admin-delete-post-btn').forEach(btn=>{
+        btn.addEventListener('click', function(){
+            const postId = this.dataset.postId;
+            if (!postId) return;
+            if (!confirm('Deseja realmente deletar este post? Esta ação é irreversível.')) return;
+            this.disabled = true;
+            fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
+                method: 'POST',
+                headers: {'Content-Type':'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({ action: 'admin_delete_post', nonce: '<?php echo wp_create_nonce('social_nonce'); ?>', post_id: postId })
+            }).then(r=>r.json()).then(data=>{
+                this.disabled = false;
+                if (data.success) {
+                    const art = document.querySelector('article[data-post-id="' + postId + '"]');
+                    if (art) art.remove();
+                } else {
+                    alert(data.data || 'Erro ao deletar post');
+                }
+            }).catch(()=>{ this.disabled = false; alert('Erro de rede'); });
+        });
+    });
+});
+</script>

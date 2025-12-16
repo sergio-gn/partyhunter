@@ -36,19 +36,9 @@
         width: 50vw;
         color: var(--white_tone);
     }
-    .background-shadow{
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        right:0;
-        z-index:0;
-        background: linear-gradient(to top, rgb(0 0 0 / 39%), rgb(255 255 255 / 1%));
-    }
     .hero_img_background{
         object-fit: cover;
         width:100%;
-        height:100%;
         top: 0;
         left:0;
         right:0;
@@ -72,8 +62,8 @@
             font-size: 2.5rem;
         }
         .homepage_hero{
-            margin-top:-7rem;
-            height:80vh;
+            margin-top:0;
+            height:40vh;
         }
     }
     @media(max-width:798px){
@@ -97,8 +87,6 @@
                     </div>
                 </div>
                 <img class="hero_img_background" src="<?php echo $image['url']; ?>" alt="<?php echo $image['alt']; ?>">
-                <div class="background-shadow">
-                </div>
             </div>    
         </section>
 <?php

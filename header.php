@@ -17,6 +17,8 @@
     --main_colour_darker: <?php echo $websitePalette['main_colour_darker'] ?>;
     --secondary_colour: <?php echo $websitePalette['secondary_colour'] ?>;
     --background_colour: <?php echo $websitePalette['background_colour'] ?>;
+    --navigation_bar_background_colour: <?php echo $websitePalette['navigation_bar_background_colour'] ?>;
+    --footer_background_colour: <?php echo $websitePalette['footer_background_colour'] ?>;
     --font_gradient_left: <?php echo $websitePalette['font_gradient_colour_1'] ?>;
     --font_gradient_right: <?php echo $websitePalette['font_gradient_colour_2'] ?>;
     --white_tone:<?php echo $websitePalette['white_tone'] ?>;
