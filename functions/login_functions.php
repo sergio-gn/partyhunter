@@ -9,7 +9,9 @@ function profile_picture($atts) {
                         <?php echo get_avatar(get_current_user_id(), 32); ?>
                     </div>
                 </a>
+                
             <?php else : ?>
+              
                 <a class="cta_button" href="/login/">
                     <svg width="18px" height="18px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 13H16C17.7107 13 19.1506 14.2804 19.3505 15.9795L20 21.5M8 13C5.2421 12.3871 3.06717 10.2687 2.38197 7.52787L2 6M8 13V18C8 19.8856 8 20.8284 8.58579 21.4142C9.17157 22 10.1144 22 12 22C13.8856 22 14.8284 22 15.4142 21.4142C16 20.8284 16 19.8856 16 18V17" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="6" r="4" stroke="#ffffff" stroke-width="1.5"/></svg>
                     <span class="cta_button_text">Login</span>
@@ -338,6 +340,133 @@ function custom_registration_form() {
     return ob_get_clean();
 }
 add_shortcode('custom_registration_form', 'custom_registration_form');
+
+add_action('wp_ajax_nopriv_ph_simple_recovery', 'ph_simple_recovery');
+add_action('wp_ajax_ph_simple_recovery', 'ph_simple_recovery');
+
+function ph_simple_recovery() {
+    // Verifica nonce de segurança (opcional, mas recomendado)
+    // check_ajax_referer('ph-recovery-nonce', 'security');
+
+    $user_login = isset($_POST['user_login']) ? sanitize_text_field($_POST['user_login']) : '';
+
+    if (empty($user_login)) {
+        wp_send_json_error(['message' => 'Digite seu e-mail ou nome de usuário.']);
+    }
+
+    // Tenta recuperar os dados do usuário pelo email ou login
+    if (is_email($user_login)) {
+        $user = get_user_by('email', $user_login);
+    } else {
+        $user = get_user_by('login', $user_login);
+    }
+
+    if (!$user) {
+        // Por segurança, você pode dizer "Email enviado" mesmo se não existir
+        // Mas para facilitar o debug agora:
+        wp_send_json_error(['message' => 'Usuário não encontrado.']);
+    }
+
+    // --- A MÁGICA NATIVA DO WORDPRESS ---
+    // Isso gera a chave de reset e envia o e-mail padrão do WP
+    // (Aquele que vai para wp-login.php?action=rp...)
+    $result = retrieve_password($user->user_login);
+
+    if (is_wp_error($result)) {
+        wp_send_json_error(['message' => $result->get_error_message()]);
+    } else {
+        wp_send_json_success(['message' => 'Verifique seu e-mail! Enviamos um link para redefinir sua senha.']);
+    }
+}
+function simple_recovery_form() {
+    if (is_user_logged_in()) {
+        return '<p class="text-center">Você já está logado.</p>';
+    }
+    ob_start();
+    ?>
+    
+    <div class="multi-step-registration" id="simpleRecoveryForm">
+        <div id="recovery-msg" style="display:none; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; text-align: center;"></div>
+
+        <div class="registration-step active">
+            <div class="step-header">
+                <h2>Recuperar Senha</h2>
+                <p class="step-indicator">Enviaremos um link para o seu e-mail</p>
+            </div>
+            
+            <form id="phRecoveryForm" onsubmit="return false">
+                <div class="input_label">
+                    <label for="user_login" class="input_group">
+                        <input type="text" id="user_login" name="user_login" required>
+                        <span class="omrs-input-label">E-mail ou Usuário</span>
+                    </label>
+                </div>
+                
+                <div class="form-actions">
+                     <a href="<?php echo home_url('/login/'); ?>" class="btn-secondary" style="text-align:center; text-decoration:none;">Voltar</a>
+                    <button type="button" class="btn-primary" id="sendLinkBtn">Enviar Link</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btn = document.getElementById('sendLinkBtn');
+        const msg = document.getElementById('recovery-msg');
+        const input = document.getElementById('user_login');
+
+        btn.addEventListener('click', function() {
+            if (!input.value) {
+                alert('Preencha o campo.');
+                return;
+            }
+
+            const originalText = btn.innerText;
+            btn.innerText = 'Enviando...';
+            btn.disabled = true;
+            msg.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('action', 'ph_simple_recovery');
+            formData.append('user_login', input.value);
+
+            fetch('<?php echo admin_url("admin-ajax.php"); ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.innerText = originalText;
+                btn.disabled = false;
+
+                msg.style.display = 'block';
+                msg.innerText = data.data.message;
+
+                if (data.success) {
+                    msg.style.background = '#e6fffa';
+                    msg.style.color = '#2c7a7b';
+                    msg.style.border = '1px solid #b2f5ea';
+                    // Limpa o campo
+                    input.value = '';
+                } else {
+                    msg.style.background = '#fee';
+                    msg.style.color = '#c33';
+                    msg.style.border = '1px solid #fcc';
+                }
+            })
+            .catch(err => {
+                btn.innerText = originalText;
+                btn.disabled = false;
+                alert('Erro de conexão.');
+            });
+        });
+    });
+    </script>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('simple_recovery_form', 'simple_recovery_form');
 
 function become_producer_button() {
     if (is_user_logged_in()) {

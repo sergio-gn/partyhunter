@@ -270,7 +270,7 @@ get_template_part( 'parts/navigation' );
     <div class="container login">
         <div class="row">
             <div class="form_box">
-                <?php echo do_shortcode('[custom_registration_form]') ?>
+                <?php echo do_shortcode('[simple_recovery_form]') ?>
             </div>
         </div>
     </div>

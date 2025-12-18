@@ -16,15 +16,19 @@ get_template_part('parts/navigation');
         min-height: 50vh;
     }
     .profile-header {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        background: #fff;
-        border-radius: 1rem;
-        padding: 1.5rem;
-        box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
-        position: relative;
-    }
+    display: flex;
+    color: white;
+    flex-direction: column;
+    gap: 1rem;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
+    position: relative;
+    background-color: #000669;
+}
+    .profile-header h2 {
+    color: #fff8d0ff;
+}
     .profile-cover-container {
         width: 100%;
         height: 200px;
@@ -339,6 +343,14 @@ get_template_part('parts/navigation');
         width: 10px;
         height: 10px;
     }
+
+    .group-feature-wrapper {
+        display:grid;
+        grid-template-columns:1fr 320px;
+        gap:1rem;
+        margin-top:1rem;
+    }
+
     .crop-controls {
         display: flex;
         flex-direction: column;
@@ -447,6 +459,13 @@ get_template_part('parts/navigation');
     .purple_btn:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+    }
+
+    @media (orientation:portrait) and (max-width:768px) {
+        .group-feature-wrapper {
+            display:flex;
+            flex-direction:column;
+        }
     }
 </style>
 <?php
@@ -560,25 +579,79 @@ get_template_part('parts/navigation');
                 </div>
 
                 <div id="ph-profile-tags-container" style="margin-top:0.5rem;">
-                                    <div style="font-size:0.9rem;color:#666;margin-bottom:0.35rem;">Tags</div>
-                    <div id="ph-profile-tags" class="ph-profile-tags">
-                        <?php
-                        if (!empty($profile_tags_structured['estado_civil'])) {
-                                            echo '<span class="ph-profile-tag" data-tag="' . esc_attr($profile_tags_structured['estado_civil']) . '">' . esc_html($profile_tags_structured['estado_civil']) . '</span>';
-                        }
-                        if (!empty($profile_tags_structured['city'])) {
-                                            echo '<span class="ph-profile-tag ph-profile-city" data-city="' . esc_attr($profile_tags_structured['city']) . '">' . esc_html($profile_tags_structured['city']) . '</span>';
-                        }
-                        foreach (array_merge((array)$profile_tags_structured['estilo_musica'], (array)$profile_tags_structured['bebida']) as $t) {
-                                            echo '<span class="ph-profile-tag" data-tag="' . esc_attr($t) . '">' . esc_html($t) . '</span>';
-                        }
-                        foreach ($profile_tags_structured['custom'] as $t) {
-                                            echo '<span class="ph-profile-tag" data-tag="' . esc_attr($t) . '">' . esc_html($t) . '</span>';
-                        }
-                        ?>
-                    </div>
-                </div>
+    <div style="font-size:0.9rem;color:#666;margin-bottom:0.35rem;">Tags</div>
+    <div id="ph-profile-tags" class="ph-profile-tags">
+        <?php
+        // 1. Configuração das Cores de Fundo
+        $cores_bg = ['#c478ff', '#d7ff82', '#b994fc', '#57dfba', '#0c8ce9'];
+        $total_cores = count($cores_bg);
+        $tag_counter = 0; // Inicializa o contador global de tags
 
+        // 2. Função Auxiliar para Calcular Contraste (Cor Antagonista)
+        // Essa função verifica se o fundo é escuro ou claro e retorna Branco ou Preto/Cinza Escuro
+        if (!function_exists('ph_get_contrast_color')) {
+            function ph_get_contrast_color($hex_color) {
+                $hex_color = ltrim($hex_color, '#');
+                $r = hexdec(substr($hex_color, 0, 2));
+                $g = hexdec(substr($hex_color, 2, 2));
+                $b = hexdec(substr($hex_color, 4, 2));
+                // Fórmula YIQ para calcular brilho percebido
+                $yiq = (($r * 299) + ($g * 587) + ($b * 114)) / 1000;
+                return ($yiq >= 128) ? '#222222' : '#ffffff'; // Retorna escuro se o fundo for claro, e vice-versa
+            }
+        }
+
+        // --- INÍCIO DA RENDERIZAÇÃO DAS TAGS ---
+
+        // A. Estado Civil
+        if (!empty($profile_tags_structured['estado_civil'])) {
+            $bg = $cores_bg[$tag_counter % $total_cores]; // Pega a cor baseada no resto da divisão
+            $text_color = ph_get_contrast_color($bg);
+            
+            echo '<span class="ph-profile-tag" style="background-color:' . $bg . '; color:' . $text_color . ';" data-tag="' . esc_attr($profile_tags_structured['estado_civil']) . '">' . esc_html($profile_tags_structured['estado_civil']) . '</span>';
+            
+            $tag_counter++; // Incrementa para a próxima tag ter a próxima cor
+        }
+
+        // B. Cidade
+        if (!empty($profile_tags_structured['city'])) {
+            $bg = $cores_bg[$tag_counter % $total_cores];
+            $text_color = ph_get_contrast_color($bg);
+
+            echo '<span class="ph-profile-tag ph-profile-city" style="background-color:' . $bg . '; color:' . $text_color . ';" data-city="' . esc_attr($profile_tags_structured['city']) . '">' . esc_html($profile_tags_structured['city']) . '</span>';
+            
+            $tag_counter++;
+        }
+
+        // C. Música e Bebida (Loop)
+        $merged_tags = array_merge((array)$profile_tags_structured['estilo_musica'], (array)$profile_tags_structured['bebida']);
+        foreach ($merged_tags as $t) {
+            if (empty($t)) continue; // Pula se estiver vazio
+            
+            $bg = $cores_bg[$tag_counter % $total_cores];
+            $text_color = ph_get_contrast_color($bg);
+
+            echo '<span class="ph-profile-tag" style="background-color:' . $bg . '; color:' . $text_color . ';" data-tag="' . esc_attr($t) . '">' . esc_html($t) . '</span>';
+            
+            $tag_counter++;
+        }
+
+        // D. Custom Tags (Loop)
+        if (!empty($profile_tags_structured['custom'])) {
+            foreach ($profile_tags_structured['custom'] as $t) {
+                if (empty($t)) continue;
+
+                $bg = $cores_bg[$tag_counter % $total_cores];
+                $text_color = ph_get_contrast_color($bg);
+
+                echo '<span class="ph-profile-tag" style="background-color:' . $bg . '; color:' . $text_color . ';" data-tag="' . esc_attr($t) . '">' . esc_html($t) . '</span>';
+                
+                $tag_counter++;
+            }
+        }
+        ?>
+    </div>
+</div>
                 <?php if ($is_owner): ?>
                     <div style="margin-top:0.75rem;">
                         <button id="ph-edit-profile-btn" class="follow-btn">Editar perfil</button>
@@ -657,7 +730,7 @@ get_template_part('parts/navigation');
         </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 320px;gap:1rem;margin-top:1rem;">
+    <div class ="group-feature-wrapper">
         <div>
             <?php if ($is_owner): ?>
                 <div style="background:#fff;padding:1rem;border-radius:0.75rem;margin-bottom:1rem;">
