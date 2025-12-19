@@ -514,6 +514,9 @@ function custom_login_form() {
         Ainda não tem conta?
         <a href="<?php echo home_url('/registrar/'); ?>">Registrar</a>
     </div>
+    <div>
+        <a href="<?php echo home_url('/recuperar-senha/'); ?>">Esqueceu sua senha?</a>
+    </div>
     <?php
     return ob_get_clean();
 }
